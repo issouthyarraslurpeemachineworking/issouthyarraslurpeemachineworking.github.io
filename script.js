@@ -399,13 +399,46 @@ async function displayBarrels() {
 
             <h2>🥤 Barrel ${barrel.id}</h2>
 
-            <h3>
-                ${barrel.flavour || "Unknown flavour"}
-            </h3>
+<h3>
+    ${barrel.flavour || "Unknown flavour"}
+</h3>
 
-            <p>
-                ${barrel.description || ""}
-            </p>
+<p>
+    ${barrel.description || ""}
+</p>
+
+<div class="flavour-suggestions">
+
+    <strong>💡 Flavour change?</strong>
+
+    <div class="suggestion-form">
+
+        <input
+            type="text"
+            id="suggestion-${barrel.id}"
+            placeholder="What flavour is it now?"
+            maxlength="100"
+        >
+
+        <button onclick="submitFlavourSuggestion(${barrel.id})">
+            Submit
+        </button>
+
+    </div>
+
+    <div
+        class="suggestion-message"
+        id="suggestion-message-${barrel.id}"
+    ></div>
+
+    <div
+        class="suggestion-list"
+        id="suggestions-${barrel.id}"
+    >
+        Loading suggestions...
+    </div>
+
+</div>
 
             ${
                 barrel.active
@@ -464,7 +497,9 @@ async function displayBarrels() {
         `;
 
 
-        container.appendChild(card);
+    container.appendChild(card);
+    
+    loadFlavourSuggestions(barrel.id);
     }
 
 
@@ -730,6 +765,154 @@ async function reportStatus(barrelId, status) {
             : "not working just now");
 }
 
+// ============================
+// FLAVOUR SUGGESTIONS
+// ============================
+
+async function getFlavourSuggestions(barrelId) {
+
+    const { data, error } =
+        await supabaseClient
+            .from("flavour_suggestions")
+            .select("suggestion, created_at")
+            .eq("barrel", barrelId)
+            .order("created_at", { ascending: false })
+            .limit(10);
+
+    if (error) {
+
+        console.error(
+            "Error loading flavour suggestions:",
+            error
+        );
+
+        return [];
+    }
+
+    return data;
+}
+
+
+async function loadFlavourSuggestions(barrelId) {
+
+    const container =
+        document.getElementById(
+            `suggestions-${barrelId}`
+        );
+
+    if (!container) {
+        return;
+    }
+
+
+    const suggestions =
+        await getFlavourSuggestions(barrelId);
+
+
+    if (suggestions.length === 0) {
+
+        container.innerHTML =
+            "<small>No suggestions yet.</small>";
+
+        return;
+    }
+
+
+    container.innerHTML = "";
+
+
+    for (const suggestion of suggestions) {
+
+        const item =
+            document.createElement("div");
+
+        item.className =
+            "suggestion-item";
+
+
+        const date =
+            new Date(suggestion.created_at);
+
+
+        const time =
+            timeAgo(date.toISOString(), null);
+
+
+        item.innerHTML = `
+            <span>
+                ${suggestion.suggestion}
+            </span>
+
+            <small>
+                ${time}
+            </small>
+        `;
+
+
+        container.appendChild(item);
+    }
+}
+
+
+async function submitFlavourSuggestion(barrelId) {
+
+    const input =
+        document.getElementById(
+            `suggestion-${barrelId}`
+        );
+
+
+    const message =
+        document.getElementById(
+            `suggestion-message-${barrelId}`
+        );
+
+
+    const suggestion =
+        input.value.trim();
+
+
+    if (!suggestion) {
+
+        message.textContent =
+            "Please enter a flavour.";
+
+        return;
+    }
+
+
+    const { error } =
+        await supabaseClient
+            .from("flavour_suggestions")
+            .insert({
+                barrel: barrelId,
+                suggestion: suggestion
+            });
+
+
+    if (error) {
+
+        console.error(
+            "Error submitting flavour suggestion:",
+            error
+        );
+
+        message.textContent =
+            "Couldn't submit suggestion 😭";
+
+        return;
+    }
+
+
+    input.value = "";
+
+
+    message.textContent =
+        "Suggestion submitted! 🥤";
+
+
+    await loadFlavourSuggestions(barrelId);
+}
 
 // ============================
 // START THE WEBSITE
