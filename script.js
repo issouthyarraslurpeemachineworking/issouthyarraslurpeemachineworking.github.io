@@ -289,6 +289,60 @@ function timeAgo(timestamp, status) {
 
 
 // ============================
+// SIMPLE TIME AGO
+// Used for flavour suggestions
+// ============================
+
+function timeAgoSimple(timestamp) {
+
+    if (!timestamp) {
+        return "";
+    }
+
+
+    const seconds =
+        Math.floor(
+            (Date.now() -
+                new Date(timestamp).getTime()) /
+            1000
+        );
+
+
+    if (seconds < 60) {
+
+        return "just now";
+    }
+
+
+    const minutes =
+        Math.floor(seconds / 60);
+
+
+    if (minutes < 60) {
+
+        return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+    }
+
+
+    const hours =
+        Math.floor(minutes / 60);
+
+
+    if (hours < 24) {
+
+        return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+    }
+
+
+    const days =
+        Math.floor(hours / 24);
+
+
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+
+// ============================
 // DISPLAY THE BARRELS
 // ============================
 
@@ -399,46 +453,48 @@ async function displayBarrels() {
 
             <h2>🥤 Barrel ${barrel.id}</h2>
 
-<h3>
-    ${barrel.flavour || "Unknown flavour"}
-</h3>
+            <h3>
+                ${barrel.flavour || "Unknown flavour"}
+            </h3>
 
-<p>
-    ${barrel.description || ""}
-</p>
+            <p>
+                ${barrel.description || ""}
+            </p>
 
-<div class="flavour-suggestions">
+            <div class="flavour-suggestions">
 
-    <strong>💡 Flavour change?</strong>
+                <strong>💡 Flavour change?</strong>
 
-    <div class="suggestion-form">
+                <div class="suggestion-form">
 
-        <input
-            type="text"
-            id="suggestion-${barrel.id}"
-            placeholder="What flavour is it now?"
-            maxlength="100"
-        >
+                    <input
+                        type="text"
+                        id="suggestion-${barrel.id}"
+                        placeholder="What flavour is it now?"
+                        maxlength="100"
+                    >
 
-        <button onclick="submitFlavourSuggestion(${barrel.id})">
-            Submit
-        </button>
+                    <button
+                        onclick="submitFlavourSuggestion(${barrel.id})"
+                    >
+                        Submit
+                    </button>
 
-    </div>
+                </div>
 
-    <div
-        class="suggestion-message"
-        id="suggestion-message-${barrel.id}"
-    ></div>
+                <div
+                    class="suggestion-message"
+                    id="suggestion-message-${barrel.id}"
+                ></div>
 
-    <div
-        class="suggestion-list"
-        id="suggestions-${barrel.id}"
-    >
-        Loading suggestions...
-    </div>
+                <div
+                    class="suggestion-list"
+                    id="suggestions-${barrel.id}"
+                >
+                    Loading suggestions...
+                </div>
 
-</div>
+            </div>
 
             ${
                 barrel.active
@@ -497,9 +553,9 @@ async function displayBarrels() {
         `;
 
 
-    container.appendChild(card);
-    
-    loadFlavourSuggestions(barrel.id);
+        container.appendChild(card);
+
+        loadFlavourSuggestions(barrel.id);
     }
 
 
@@ -765,6 +821,7 @@ async function reportStatus(barrelId, status) {
             : "not working just now");
 }
 
+
 // ============================
 // FLAVOUR SUGGESTIONS
 // ============================
@@ -779,6 +836,7 @@ async function getFlavourSuggestions(barrelId) {
             .order("created_at", { ascending: false })
             .limit(10);
 
+
     if (error) {
 
         console.error(
@@ -788,6 +846,7 @@ async function getFlavourSuggestions(barrelId) {
 
         return [];
     }
+
 
     return data;
 }
@@ -799,6 +858,7 @@ async function loadFlavourSuggestions(barrelId) {
         document.getElementById(
             `suggestions-${barrelId}`
         );
+
 
     if (!container) {
         return;
@@ -826,27 +886,33 @@ async function loadFlavourSuggestions(barrelId) {
         const item =
             document.createElement("div");
 
+
         item.className =
             "suggestion-item";
 
 
-        const date =
-            new Date(suggestion.created_at);
+        // Add suggestion text safely
+        const suggestionText =
+            document.createElement("span");
 
 
-        const time =
-            timeAgo(date.toISOString(), null);
+        suggestionText.textContent =
+            suggestion.suggestion;
 
 
-        item.innerHTML = `
-            <span>
-                ${suggestion.suggestion}
-            </span>
+        // Add timestamp
+        const timeText =
+            document.createElement("small");
 
-            <small>
-                ${time}
-            </small>
-        `;
+
+        timeText.textContent =
+            timeAgoSimple(
+                suggestion.created_at
+            );
+
+
+        item.appendChild(suggestionText);
+        item.appendChild(timeText);
 
 
         container.appendChild(item);
@@ -897,6 +963,7 @@ async function submitFlavourSuggestion(barrelId) {
             error
         );
 
+
         message.textContent =
             "Couldn't submit suggestion 😭";
 
@@ -913,6 +980,7 @@ async function submitFlavourSuggestion(barrelId) {
 
     await loadFlavourSuggestions(barrelId);
 }
+
 
 // ============================
 // START THE WEBSITE
