@@ -834,7 +834,7 @@ async function getFlavourSuggestions(barrelId) {
             .select("suggestion, created_at")
             .eq("barrel", barrelId)
             .order("created_at", { ascending: false })
-            .limit(10);
+            .limit(3);
 
 
     if (error) {
